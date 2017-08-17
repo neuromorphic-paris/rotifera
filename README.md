@@ -25,9 +25,11 @@ Measured NUC consumption while running a CPU and memory benchmark (`stress-ng --
 ## Thrust range
 
 Backward speed enable: `1578 us`
+
 Backward speed disable (once enabled): `1576 us`
 
 Forward speed enable: `1527 us`
+
 Forward speed disbale (once enabled): `1529 us`
 
 Theoretical zero: `(1578 + 1527) / 2 = 1552.5 us`
