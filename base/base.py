@@ -15,6 +15,7 @@ Encoded message structure:
 import serial
 import threading
 
+# generate the table for the CRC-8/GSM-B standard
 crcTable = bytearray(256)
 for index in range(0, len(crcTable)):
     byte = index
