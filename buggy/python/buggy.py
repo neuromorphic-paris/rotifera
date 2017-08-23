@@ -5,8 +5,8 @@ import socket
 import threading
 
 inputSocket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-inputSocket.connect('/var/run/arbiter-base.sock')
-outputFifo = open('/var/run/arbiter-buggy.fifo', 'wb')
+inputSocket.connect('/var/run/buggy/arbiter.sock')
+outputFifo = open('/var/run/buggy/arbiter.fifo', 'wb')
 
 messageListeners = []
 messageListenersLock = threading.Lock()
