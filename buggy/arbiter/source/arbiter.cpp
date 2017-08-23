@@ -27,7 +27,7 @@ const auto motorsZeros = std::array<uint16_t, 2>{
 };
 
 /// logFile is used for debug.
-const auto logFilename = std::string("/home/nuc/buggy/arbiter/arbiter.log");
+const auto logFilename = std::string("/home/nuc/rotifera/buggy/arbiter/arbiter.log");
 
 int main() {
     try {
