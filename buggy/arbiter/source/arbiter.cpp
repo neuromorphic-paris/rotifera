@@ -18,6 +18,12 @@ enum class Control {
     lost, // connection with the radio controller lost, stops the buggy until the connection is back
 };
 
+/// motorsZeros defines the neutral command for each motor.
+const auto motorsZeros = std::array<uint16_t, 2>{
+    1500, // direction
+    1552, // throttle
+};
+
 int main() {
     try {
         std::exception_ptr exception;
@@ -80,7 +86,7 @@ int main() {
                 std::size_t badCounter = 0;
                 std::size_t onlyOnesCounter = 0;
                 std::size_t goodCounter = 0;
-                auto preemptCounters = std::array<std::size_t, 2>{0, 0};
+                auto preemptCounters = std::array<uint64_t, motorsZeros.size()>{0, 0};
                 while (running.load(std::memory_order_relaxed)) {
                     try {
                         const auto byte = arduino.read();
@@ -92,6 +98,9 @@ int main() {
                         } else {
                             expectedByteId = 0;
                             const uint8_t index = (previousBytes[0] >> 2);
+                            if (index >= motorsZeros.size()) {
+                                throw std::logic_error("the arduino sent an out-of-range index");
+                            }
                             const uint16_t value = static_cast<uint16_t>(previousBytes[1] >> 2) | (static_cast<uint16_t>(byte & 0xfc) << 4);
                             switch (control.load(std::memory_order_acquire)) {
                                 case Control::base: {
@@ -100,7 +109,7 @@ int main() {
                                         if (badCounter > 10) {
                                             throw std::runtime_error("bad values");
                                         }
-                                    } else if (std::abs(value - 1500) > 100) {
+                                    } else if (std::abs(value - motorsZeros[index]) > 100) {
                                         ++preemptCounters[index];
                                         if (preemptCounters[index] > 10) {
                                             control.store(Control::radio, std::memory_order_release);
@@ -168,7 +177,7 @@ int main() {
                         {
                             std::lock_guard<std::mutex> lockGuard(indicesAndValuesLock);
                             indicesAndValues.clear();
-                            indicesAndValues.emplace_back(1, 1500);
+                            indicesAndValues.emplace_back(1, std::get<1>(motorsZeros));
                         }
                         indicesAndValuesChanged.notify_one();
                     }
@@ -442,7 +451,7 @@ int main() {
             {
                 std::lock_guard<std::mutex> lockGuard(indicesAndValuesLock);
                 indicesAndValues.clear();
-                indicesAndValues.emplace_back(1, 1500);
+                indicesAndValues.emplace_back(1, std::get<1>(motorsZeros));
             }
             indicesAndValuesChanged.notify_one();
         }

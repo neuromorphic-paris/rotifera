@@ -13,6 +13,7 @@ struct Input {
 /// Output wraps a servo object with its pin.
 struct Output {
     const byte pin;
+    const int zero;
     Servo servo;
 };
 
@@ -30,8 +31,8 @@ void interruptCallback(Input* input) {
 
 /// Declare the inputs and the associated callbacks.
 Input inputs[] = {
-    {2, directionInterruptCallback},
-    {3, throttleInterruptCallback},
+    {2, directionInterruptCallback}, // direction
+    {3, throttleInterruptCallback}, // throttle
 };
 void directionInterruptCallback() {
     interruptCallback(&inputs[0]);
@@ -42,8 +43,8 @@ void throttleInterruptCallback() {
 
 /// Declare the outputs.
 Output outputs[] = {
-    {22},
-    {24},
+    {22, 1500}, // direction
+    {24, 1552}, // throttle
 };
 
 /// Declare the read state machine.
@@ -62,6 +63,7 @@ void setup() {
     }
     for (unsigned int index = 0; index < sizeof(outputs) / sizeof(Output); ++index) {
         outputs[index].servo.attach(outputs[index].pin);
+        outputs[index].servo.writeMicroseconds(outputs[index].zero);
     }
 }
 
@@ -101,8 +103,7 @@ void loop() {
         }
         lastRead = millis();
     } else if (millis() - lastRead > 1000) {
-        outputs[1].servo.writeMicroseconds(1548);
+        outputs[1].servo.writeMicroseconds(outputs[1].zero);
         lastRead = millis();
     }
 }
-
