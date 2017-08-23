@@ -208,7 +208,7 @@ int main() {
                 }
             }, handleException));
 
-            // listen to the base events
+            // listen to the base messages
             eventLoops.push_back(make_eventLoop([&](std::atomic_bool& running) {
                 auto message = std::vector<uint8_t>{};
                 auto readingMessage = false;
@@ -301,8 +301,7 @@ int main() {
                                                     throw std::logic_error("unknown special message id");
                                                 }
                                             }
-                                        } else if (message.size() > 1 && message.size() <= 4097) {
-                                            message.resize(message.size() - 1);
+                                        } else if (!message.empty() && message.size() <= 4096) {
                                             std::lock_guard<std::mutex> lockGuard(socketsLock);
                                             for (auto socketIterator = sockets.begin(); socketIterator != sockets.end();) {
                                                 if (send(*socketIterator, message.data(), message.size(), MSG_NOSIGNAL) <= 0) {
