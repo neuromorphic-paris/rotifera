@@ -24,6 +24,7 @@ class Tty {
                 throw std::logic_error("getting the terminal options failed");
             }
             cfmakeraw(&options);
+            options.c_iflag |= (IXON | IXOFF);
             cfsetispeed(&options, baudrate);
             cfsetospeed(&options, baudrate);
             options.c_cc[VMIN] = 0;
