@@ -61,7 +61,7 @@ def setSpeed(speed):
     """
     if not isinstance(speed, (int, long)):
         raise AssertionError('speed must be an integer')
-    if speed < -500 or direction > 500:
+    if speed < -500 or speed > 500:
         raise AssertionError('speed must be in the range [-500, 500]')
     correctedSpeed = speed + 1500
     outputFifo.write(bytearray((1, correctedSpeed & 0xff, (correctedSpeed >> 8) & 0xff)))
