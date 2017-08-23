@@ -384,7 +384,7 @@ int main() {
 
             // manage socket connections
             eventLoops.push_back(make_eventLoop([&](std::atomic_bool& running) {
-                const auto socketName = std::string("/var/run/buggy/arbiter.sock");
+                const auto socketName = std::string("/var/run/rotifera/arbiter.sock");
                 const auto fileDescriptor = socket(AF_UNIX, SOCK_STREAM, 0);
                 if (fileDescriptor < 0) {
                     throw std::logic_error(std::string("creating the socket '") + socketName + "' failed");
@@ -427,7 +427,7 @@ int main() {
 
             // listen to on-board script events
             eventLoops.push_back(make_eventLoop([&](std::atomic_bool& running) {
-                const auto fifoName = std::string("/var/run/buggy/arbiter.fifo");
+                const auto fifoName = std::string("/var/run/rotifera/arbiter.fifo");
                 unlink(fifoName.c_str());
                 umask(0000);
                 if (mkfifo(fifoName.c_str(), 0777) < 0) {
