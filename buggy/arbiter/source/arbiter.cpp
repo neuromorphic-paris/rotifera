@@ -77,6 +77,8 @@ int main() {
                         bufferedIndicesAndValues.swap(indicesAndValues);
                     }
                     if (bufferedIndicesAndValues.empty()) {
+
+                        // heartbeat message
                         arduino.write(std::vector<uint8_t>{
                             static_cast<uint8_t>(0b11111100),
                             static_cast<uint8_t>(0b00000001),
