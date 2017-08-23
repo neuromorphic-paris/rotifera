@@ -1,5 +1,6 @@
 #include "eventLoop.hpp"
 #include "tty.hpp"
+#include "log.hpp"
 
 #include <sys/un.h>
 #include <sys/stat.h>
