@@ -48,20 +48,6 @@ int main() {
             std::unique_lock<std::mutex> uniqueLock(exceptionLock);
             std::vector<std::unique_ptr<EventLoop>> eventLoops{};
 
-            // crc table
-            auto crcTable = std::array<uint8_t, 256>{};
-            for (std::size_t index = 0; index < crcTable.size(); ++index) {
-                auto byte = static_cast<uint8_t>(index);
-                for (std::size_t bit = 0; bit < 8; ++bit) {
-                    if ((byte & 0x80) != 0) {
-                        byte = (byte << 1) ^ 0x49;
-                    } else {
-                        byte <<= 1;
-                    }
-                }
-                crcTable[index] = byte;
-            }
-
             // handle motor commands
             eventLoops.push_back(make_eventLoop([&](std::atomic_bool& running) {
                 while (running.load(std::memory_order_relaxed)) {
@@ -192,7 +178,6 @@ int main() {
             // listen to the base events
             eventLoops.push_back(make_eventLoop([&](std::atomic_bool& running) {
                 auto message = std::vector<uint8_t>{};
-                uint8_t crc = 0;
                 auto readingMessage = false;
                 auto escapedCharacter = false;
                 auto specialMessage = false;
@@ -204,7 +189,6 @@ int main() {
                             switch (byte) {
                                 case 0x00: {
                                     message.clear();
-                                    crc = 0;
                                     escapedCharacter = false;
                                     specialMessage = false;
                                     break;
@@ -215,7 +199,7 @@ int main() {
                                 }
                                 case 0xff: {
                                     readingMessage = false;
-                                    if (!escapedCharacter && crc == 0x53) {
+                                    if (!escapedCharacter) {
                                         if (specialMessage) {
                                             switch (specialMessageId) {
                                                 case 0: {
@@ -247,13 +231,6 @@ int main() {
                                                     }
 
                                                     // encode and send the message
-                                                    {
-                                                        uint8_t crc = 0;
-                                                        for (auto byte : message) {
-                                                            crc = crcTable[byte ^ crc];
-                                                        }
-                                                        message.push_back(crc ^ 0xff);
-                                                    }
                                                     auto bytes = std::vector<uint8_t>{0x00};
                                                     for (auto byte : message) {
                                                         switch (byte) {
@@ -312,23 +289,18 @@ int main() {
                                         escapedCharacter = false;
                                         switch (byte) {
                                             case 0xab: {
-                                                crc = crcTable[0x00 ^ crc];
                                                 message.push_back(0x00);
                                                 break;
                                             }
                                             case 0xac: {
-                                                crc = crcTable[0xaa ^ crc];
                                                 message.push_back(0xaa);
                                                 break;
                                             }
                                             case 0xad: {
-                                                crc = crcTable[0xff ^ crc];
                                                 message.push_back(0xff);
                                                 break;
                                             }
                                             case 0xae: {
-                                                crc = crcTable[0xaa ^ crc];
-                                                crc = crcTable[0xae ^ crc];
                                                 if (!specialMessage) {
                                                     specialMessage = true;
                                                     specialMessageId = 0;
@@ -336,8 +308,6 @@ int main() {
                                                 break;
                                             }
                                             case 0xaf: {
-                                                crc = crcTable[0xaa ^ crc];
-                                                crc = crcTable[0xaf ^ crc];
                                                 if (!specialMessage) {
                                                     specialMessage = true;
                                                     specialMessageId = 1;
@@ -345,8 +315,6 @@ int main() {
                                                 break;
                                             }
                                             case 0xba: {
-                                                crc = crcTable[0xaa ^ crc];
-                                                crc = crcTable[0xba ^ crc];
                                                 if (!specialMessage) {
                                                     specialMessage = true;
                                                     specialMessageId = 2;
@@ -358,7 +326,6 @@ int main() {
                                             }
                                         }
                                     } else {
-                                        crc = crcTable[byte ^ crc];
                                         message.push_back(byte);
                                     }
                                 }
@@ -366,7 +333,6 @@ int main() {
                         } else {
                             if (byte == 0x00) {
                                 message.clear();
-                                crc = 0;
                                 readingMessage = true;
                                 escapedCharacter = false;
                                 specialMessage = false;
