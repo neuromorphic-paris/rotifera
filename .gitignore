@@ -1,2 +1,3 @@
 buggy/arbiter/build
 *.pyc
+.DS_STORE
