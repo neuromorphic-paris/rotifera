@@ -10,6 +10,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <iostream>
+#include <sstream>
 
 /// Control determines which remote is controlling the buggy.
 enum class Control {
@@ -24,8 +25,12 @@ const auto motorsZeros = std::array<uint16_t, 2>{
     1552, // throttle
 };
 
+/// logFile is used for debug.
+const auto logFilename = std::string("/home/nuc/buggy/arbiter/arbiter.log");
+
 int main() {
     try {
+        Log log(logFilename);
         std::exception_ptr exception;
         std::mutex exceptionLock;
         std::condition_variable exceptionChanged;
@@ -56,25 +61,40 @@ int main() {
 
             // handle motor commands
             eventLoops.push_back(make_eventLoop([&](std::atomic_bool& running) {
+                for (uint8_t index = 0; index < motorsZeros.size(); ++index) {
+                    arduino.write(std::vector<uint8_t>{
+                        static_cast<uint8_t>(0b00 | (index << 2)),
+                        static_cast<uint8_t>(0b01 | (motorsZeros[index] << 2)),
+                        static_cast<uint8_t>(0b10 | ((motorsZeros[index] >> 4) & 0xfc)),
+                    });
+                }
                 while (running.load(std::memory_order_relaxed)) {
+                    bufferedIndicesAndValues.clear();
                     {
                         std::unique_lock<std::mutex> uniqueLock(indicesAndValuesLock);
-                        if (indicesAndValuesChanged.wait_for(uniqueLock, std::chrono::milliseconds(100)) == std::cv_status::no_timeout) {
-                            bufferedIndicesAndValues.swap(indicesAndValues);
-                        }
+                        indicesAndValuesChanged.wait_for(uniqueLock, std::chrono::milliseconds(1000));
+                        bufferedIndicesAndValues.swap(indicesAndValues);
                     }
-                    for (auto indexAndValue : bufferedIndicesAndValues) {
-
-                        //             | LSB  | bit 1 | bit 2 | bit 3 | bit 4 | bit 5 | bit 6 | MSB
-                        // ------------|------|-------|-------|-------|-------|-------|-------|-------
-                        // First byte  | 0    | 0     | i[0]  | i[1]  | i[2]  | i[3]  | i[4]  | i[5]
-                        // Second byte | 1    | 0     | v[0]  | v[1]  | v[2]  | v[3]  | v[4]  | v[5]
-                        // Third byte  | 0    | 1     | v[6]  | v[7]  | v[8]  | v[9]  | v[10] | v[11]
+                    if (bufferedIndicesAndValues.empty()) {
                         arduino.write(std::vector<uint8_t>{
-                            static_cast<uint8_t>(0b00 | (indexAndValue.first << 2)),
-                            static_cast<uint8_t>(0b01 | (indexAndValue.second << 2)),
-                            static_cast<uint8_t>(0b10 | ((indexAndValue.second >> 4) & 0xfc)),
+                            static_cast<uint8_t>(0b11111100),
+                            static_cast<uint8_t>(0b00000001),
+                            static_cast<uint8_t>(0b00000010),
                         });
+                    } else {
+                        for (auto indexAndValue : bufferedIndicesAndValues) {
+
+                            //             | LSB  | bit 1 | bit 2 | bit 3 | bit 4 | bit 5 | bit 6 | MSB
+                            // ------------|------|-------|-------|-------|-------|-------|-------|-------
+                            // First byte  | 0    | 0     | i[0]  | i[1]  | i[2]  | i[3]  | i[4]  | i[5]
+                            // Second byte | 1    | 0     | v[0]  | v[1]  | v[2]  | v[3]  | v[4]  | v[5]
+                            // Third byte  | 0    | 1     | v[6]  | v[7]  | v[8]  | v[9]  | v[10] | v[11]
+                            arduino.write(std::vector<uint8_t>{
+                                static_cast<uint8_t>(0b00 | (indexAndValue.first << 2)),
+                                static_cast<uint8_t>(0b01 | (indexAndValue.second << 2)),
+                                static_cast<uint8_t>(0b10 | ((indexAndValue.second >> 4) & 0xfc)),
+                            });
+                        }
                     }
                 }
             }, handleException));
@@ -168,6 +188,7 @@ int main() {
                             }
                         }
                     } catch (const std::runtime_error& exception) {
+                        log.write(std::string("radio controller exception: ") + exception.what());
                         badCounter = 0;
                         goodCounter = 0;
                         for (auto& preemptCounter : preemptCounters) {
@@ -212,14 +233,16 @@ int main() {
                                         if (specialMessage) {
                                             switch (specialMessageId) {
                                                 case 0: {
-                                                    if (control.load(std::memory_order_release) != Control::lost) {
+                                                    if (control.load(std::memory_order_acquire) != Control::lost) {
                                                         control.store(Control::base, std::memory_order_release);
+                                                        log.write("switch to base control");
                                                     }
                                                     break;
                                                 }
                                                 case 1: {
-                                                    if (control.load(std::memory_order_release) != Control::lost) {
+                                                    if (control.load(std::memory_order_acquire) != Control::lost) {
                                                         control.store(Control::radio, std::memory_order_release);
+                                                        log.write("switch to radio control");
                                                     }
                                                     break;
                                                 }
@@ -227,15 +250,18 @@ int main() {
 
                                                     // prepare the message
                                                     auto message = std::vector<uint8_t>{};
-                                                    switch (control.load(std::memory_order_relaxed)) {
+                                                    switch (control.load(std::memory_order_acquire)) {
                                                         case Control::base: {
                                                             message.push_back(0x00);
+                                                            break;
                                                         }
                                                         case Control::radio: {
                                                             message.push_back(0x01);
+                                                            break;
                                                         }
                                                         case Control::lost: {
                                                             message.push_back(0x02);
+                                                            break;
                                                         }
                                                     }
 
@@ -265,6 +291,7 @@ int main() {
                                                     }
                                                     bytes.push_back(0xff);
                                                     base.write(bytes);
+                                                    log.write("dump telemetry data");
                                                     break;
                                                 }
                                                 default: {
@@ -281,14 +308,15 @@ int main() {
                                                     ++socketIterator;
                                                 }
                                             }
-
-                                            // @DEBUG {
-                                            std::cout << "Message received: {";
-                                            for (auto byte : message) {
-                                                std::cout << +byte << ", ";
+                                            {
+                                                std::stringstream logMessage;
+                                                logMessage << "Message received: {";
+                                                for (std::size_t index = 0; index < message.size() - 1; ++index) {
+                                                    logMessage << +message[index] << ", ";
+                                                }
+                                                logMessage << +message[message.size() - 1] << "}";
+                                                log.write(logMessage.str());
                                             }
-                                            std::cout << "}" << std::endl;
-                                            // }
                                         }
                                     }
                                     break;
@@ -369,6 +397,7 @@ int main() {
                         throw std::logic_error(std::string("binding the socket '") + socketName + "' failed");
                     }
                 }
+                chmod(socketName.c_str(), 0777);
                 if (listen(fileDescriptor, SOMAXCONN) < 0) {
                     throw std::logic_error(std::string("listening with socket '") + socketName + "' failed");
                 }
@@ -399,7 +428,8 @@ int main() {
             eventLoops.push_back(make_eventLoop([&](std::atomic_bool& running) {
                 const auto fifoName = std::string("/var/run/buggy/arbiter.fifo");
                 unlink(fifoName.c_str());
-                if (mkfifo(fifoName.c_str(), 0666) < 0) {
+                umask(0000);
+                if (mkfifo(fifoName.c_str(), 0777) < 0) {
                     throw std::logic_error(std::string("creating the fifo '") + fifoName + "' failed");
                 }
                 const auto fileDescriptor = open(fifoName.c_str(), O_RDWR | O_NONBLOCK);
@@ -425,15 +455,15 @@ int main() {
                         if (bytesRead == bytes.size()) {
                             {
                                 std::lock_guard<std::mutex> lockGuard(indicesAndValuesLock);
-
-                                // @DEBUG
-                                std::cout << "Message received from script: {";
-                                for (auto byte : bytes) {
-                                    std::cout << +byte << ", ";
+                                {
+                                    std::stringstream logMessage;
+                                    logMessage << "Message received from local script: {";
+                                    for (std::size_t index = 0; index < bytes.size() - 1; ++index) {
+                                        logMessage << +bytes[index] << ", ";
+                                    }
+                                    logMessage << +bytes[bytes.size() - 1] << "}";
+                                    log.write(logMessage.str());
                                 }
-                                std::cout << "}" << std::endl;
-                                // }
-
                                 if (control.load(std::memory_order_release) == Control::base) {
                                     indicesAndValues.emplace_back(bytes[0], (static_cast<uint16_t>(bytes[2]) << 8) | static_cast<uint16_t>(bytes[1]));
                                 }
