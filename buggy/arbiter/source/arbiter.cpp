@@ -50,7 +50,7 @@ int main() {
             // common state
             std::atomic<Control> control{Control::base};
             auto arduino = Tty("/dev/ttyACM0", B230400, 10);
-            auto base = Tty("/dev/ttyUSB0", B57600, 1);
+            auto base = Tty("/dev/ttyUSB0", B38400, 1);
             std::vector<std::pair<uint8_t, uint16_t>> indicesAndValues;
             std::vector<std::pair<uint8_t, uint16_t>> bufferedIndicesAndValues;
             std::mutex indicesAndValuesLock;

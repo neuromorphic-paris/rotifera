@@ -15,7 +15,7 @@ Encoded message structure:
 import serial
 import threading
 
-radioSerial = serial.Serial('/dev/tty.usbserial-FT1LV4D3', baudrate = 57600)
+radioSerial = serial.Serial('/dev/tty.usbserial-FT1LV4D3', baudrate = 38400)
 
 messageListeners = []
 messageListenersLock = threading.Lock()
