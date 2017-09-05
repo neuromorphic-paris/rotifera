@@ -43,6 +43,7 @@ class Tty {
         /// write sends data to the tty.
         virtual void write(const std::vector<uint8_t>& bytes) {
             ::write(_fileDescriptor, bytes.data(), bytes.size());
+            tcdrain(_fileDescriptor);
         }
 
         /// read loads a single byte from the tty.
