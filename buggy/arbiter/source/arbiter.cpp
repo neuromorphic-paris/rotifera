@@ -305,13 +305,40 @@ int main() {
                                                     throw std::logic_error("unknown special message id");
                                                 }
                                             }
-                                        } else if (!message.empty() && message.size() <= 4096) {
-                                            std::lock_guard<std::mutex> lockGuard(socketsLock);
-                                            for (auto socketIterator = sockets.begin(); socketIterator != sockets.end();) {
-                                                if (send(*socketIterator, message.data(), message.size(), MSG_NOSIGNAL) <= 0) {
-                                                    socketIterator = sockets.erase(socketIterator);
-                                                } else {
-                                                    ++socketIterator;
+                                        } else if (!message.empty()) {
+                                            {
+                                                auto encodedMessage = std::vector<uint8_t>{0x00};
+                                                encodedMessage.reserve(message.size() + 2);
+                                                for (auto byte : message) {
+                                                    switch (byte) {
+                                                        case 0x00: {
+                                                            encodedMessage.push_back(0xaa);
+                                                            encodedMessage.push_back(0xab);
+                                                            break;
+                                                        }
+                                                        case 0xaa: {
+                                                            encodedMessage.push_back(0xaa);
+                                                            encodedMessage.push_back(0xac);
+                                                            break;
+                                                        }
+                                                        case 0xff: {
+                                                            encodedMessage.push_back(0xaa);
+                                                            encodedMessage.push_back(0xad);
+                                                            break;
+                                                        }
+                                                        default: {
+                                                            encodedMessage.push_back(byte);
+                                                        }
+                                                    }
+                                                }
+                                                encodedMessage.push_back(0xff);
+                                                std::lock_guard<std::mutex> lockGuard(socketsLock);
+                                                for (auto socketIterator = sockets.begin(); socketIterator != sockets.end();) {
+                                                    if (send(*socketIterator, encodedMessage.data(), encodedMessage.size(), MSG_NOSIGNAL) <= 0) {
+                                                        socketIterator = sockets.erase(socketIterator);
+                                                    } else {
+                                                        ++socketIterator;
+                                                    }
                                                 }
                                             }
                                             {

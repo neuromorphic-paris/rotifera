@@ -11,15 +11,45 @@ outputFifo = open('/var/run/rotifera/arbiter.fifo', 'wb')
 messageListeners = []
 messageListenersLock = threading.Lock()
 def listeningWorker():
-    bytes = bytearray(4096)
+    message = bytearray()
+    readingMessage = False
+    escapedCharacter = False
     while True:
         bytesRead = inputSocket.recv_into(bytes, len(bytes))
         if bytesRead > 0:
-            message = bytes[:bytesRead]
-            messageListenersLock.acquire()
-            for messageListener in messageListeners:
-                messageListener(message)
-            messageListenersLock.release()
+            readBytes = bytes[:bytesRead]
+            for byte in readBytes:
+                if readingMessage:
+                    if byte == 0x00:
+                        message = bytearray()
+                        escapedCharacter = False
+                    elif byte == 0xaa:
+                        escapedCharacter = True
+                    elif byte == 0xff:
+                        readingMessage = False
+                        if not escapedCharacter:
+                            messageListenersLock.acquire()
+                            for messageListener in messageListeners:
+                                messageListener(message)
+                            messageListenersLock.release()
+                    else:
+                        if escapedCharacter:
+                            escapedCharacter = False
+                            if byte == 0xab:
+                                message.append(0x00)
+                            elif byte == 0xac:
+                                message.append(0xaa)
+                            elif byte == 0xad:
+                                message.append(0xff)
+                            else:
+                                readingMessage = False
+                        else:
+                            message.append(byte)
+                else:
+                    if byte == 0x00:
+                        message = bytearray()
+                        readingMessage = True
+                        escapedCharacter = False
 
 listeningThread = threading.Thread(target = listeningWorker)
 listeningThread.daemon = True

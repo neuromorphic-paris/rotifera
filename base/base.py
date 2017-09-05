@@ -109,8 +109,6 @@ def sendBytes(bytes):
     Arguments:
         bytes (bytearray): the bytes to send.
     """
-    if len(bytes) == 0 or len(bytes) > 4096:
-        raise AssertionError('the number of bytes must be in the range [1, 4096]')
     encodedBytes = bytearray([0x00])
     for byte in bytes:
         if byte == 0x00:
