@@ -21,7 +21,7 @@ enum class Control {
 };
 
 /// motorsZeros defines the neutral command for each motor.
-const auto motorsZeros = std::array<uint16_t, 2>{
+const auto motorsZeros = std::array<uint16_t, 4>{
     1500, // direction
     1552, // throttle
     1500, // pan
