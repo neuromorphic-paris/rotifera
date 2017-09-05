@@ -295,7 +295,7 @@ int main() {
                                                         }
                                                     }
                                                     bytes.push_back(0xff);
-                                                    for (byte : bytes) {
+                                                    for (auto byte : bytes) {
                                                         base.write(std::vector<uint8_t>{byte});
                                                     }
                                                     log.write("dump telemetry data");
