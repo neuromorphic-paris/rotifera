@@ -14,8 +14,9 @@ def listeningWorker():
     message = bytearray()
     readingMessage = False
     escapedCharacter = False
+    bytesBuffer = bytearray(4096)
     while True:
-        bytesRead = inputSocket.recv_into(bytes, len(bytes))
+        bytesRead = inputSocket.recv_into(bytesBuffer, len(bytesBuffer))
         if bytesRead > 0:
             readBytes = bytes[:bytesRead]
             for byte in readBytes:
