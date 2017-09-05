@@ -66,3 +66,33 @@ def setSpeed(speed):
     correctedSpeed = speed + 1500
     outputFifo.write(bytearray((1, correctedSpeed & 0xff, (correctedSpeed >> 8) & 0xff)))
     outputFifo.flush()
+
+def setPan(pan):
+    """
+    setPan changes the camera's pan angle.
+
+    Arguments:
+        pan (integer): the camera's pan angle, must be in the range [-500, 500].
+    """
+    if not isinstance(pan, (int, long)):
+        raise AssertionError('pan must be an integer')
+    if pan < -500 or pan > 500:
+        raise AssertionError('pan must be in the range [-500, 500]')
+    correctedPan = pan + 1500
+    outputFifo.write(bytearray((2, correctedPan & 0xff, (correctedPan >> 8) & 0xff)))
+    outputFifo.flush()
+
+def setTilt(tilt):
+    """
+    setTilt changes the camera's tilt angle.
+
+    Arguments:
+        tilt (integer): the camera's tilt angle, must be in the range [-500, 500].
+    """
+    if not isinstance(tilt, (int, long)):
+        raise AssertionError('tilt must be an integer')
+    if tilt < -500 or tilt > 500:
+        raise AssertionError('tilt must be in the range [-500, 500]')
+    correctedTilt = tilt + 1500
+    outputFifo.write(bytearray((2, correctedTilt & 0xff, (correctedTilt >> 8) & 0xff)))
+    outputFifo.flush()

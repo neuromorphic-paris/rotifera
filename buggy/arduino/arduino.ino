@@ -45,6 +45,8 @@ void throttleInterruptCallback() {
 Output outputs[] = {
     {22, 1500}, // direction
     {24, 1552}, // throttle
+    {18, 1500}, // pan
+    {20, 1500}, // tilt
 };
 
 /// Declare the read state machine.

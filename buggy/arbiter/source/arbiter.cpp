@@ -24,6 +24,8 @@ enum class Control {
 const auto motorsZeros = std::array<uint16_t, 2>{
     1500, // direction
     1552, // throttle
+    1500, // pan
+    1500, // tilt
 };
 
 /// logFile is used for debug.
