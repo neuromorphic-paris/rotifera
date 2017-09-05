@@ -18,7 +18,7 @@ def listeningWorker():
     while True:
         bytesRead = inputSocket.recv_into(bytesBuffer, len(bytesBuffer))
         if bytesRead > 0:
-            readBytes = bytes[:bytesRead]
+            readBytes = bytesBuffer[:bytesRead]
             for byte in readBytes:
                 if readingMessage:
                     if byte == 0x00:
