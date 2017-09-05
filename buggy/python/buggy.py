@@ -125,5 +125,5 @@ def setTilt(tilt):
     if tilt < -500 or tilt > 500:
         raise AssertionError('tilt must be in the range [-500, 500]')
     correctedTilt = tilt + 1500
-    outputFifo.write(bytearray((2, correctedTilt & 0xff, (correctedTilt >> 8) & 0xff)))
+    outputFifo.write(bytearray((3, correctedTilt & 0xff, (correctedTilt >> 8) & 0xff)))
     outputFifo.flush()
