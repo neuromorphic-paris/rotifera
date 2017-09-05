@@ -80,7 +80,8 @@ def sendRawBytes(bytes):
     Arguments:
         bytes (bytearray): the bytes to send.
     """
-    radioSerial.write(bytes)
+    for byte in bytes:
+        radioSerial.write(bytearray((byte,)))
     radioSerial.flush()
 
 def switchToBaseControl():
