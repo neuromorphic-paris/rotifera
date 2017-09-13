@@ -1,5 +1,5 @@
 """
-base implements methods to send messages tothe buggy.
+base implements methods to send messages to the buggy.
 
 Encoded message structure:
     0x00 | encoded bytes | 0xff
@@ -15,7 +15,8 @@ Encoded message structure:
 import serial
 import threading
 
-radioSerial = serial.Serial('/dev/tty.usbserial-FT1LV4D3', baudrate = 38400)
+radioSerial = serial.Serial("COM3", baudrate = 38400)
+#'/dev/tty.usbserial-FT1LV4D3', baudrate = 38400)
 
 messageListeners = []
 messageListenersLock = threading.Lock()
